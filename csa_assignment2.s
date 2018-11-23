@@ -34,7 +34,17 @@ JFIB:
     sw $a0, 0($sp)      # Store input N on the stack
     
     jal make_heap       # Make array on the heap, returns base address of memo on heap
+    lb $a0, 0($t1)
+    li $v0, 1
+    syscall
     
+    lb $a0, 4($t1)
+    li $v0, 1
+    syscall
+    
+    lb $a0, 8($t1)
+    li $v0, 1
+    syscall
     lw $a0, 0($sp)      # Load input N from the heap into parameter $a0
     move $a1, $v0       # Move base address of memo on heap into parameter $a1
     mul $t1, $a0, $t9   # n*4
@@ -43,7 +53,7 @@ JFIB:
     
 PRINT:
     move $a0, $v0
-    li $v0, 1
+    li $v0, 1       # Print integer
     syscall
     
 EXIT:
@@ -68,13 +78,8 @@ make_heap:
     
     # Initisalise memo with 0s
     sb $t8, 0($t1)        # Store 0 at index (n-2)
-    add $t1, $t1, $t9   # Shift along to the next index (n-1)
-    
-    sb $t8, 0($t1)      # Store 0 at index (n-1)
-    add $t1, $t1, $t9   # Shift along to the next index n
-    
-    sb $t8, 0($t1)      # Store 0 at index n
-    
+    sb $t8, 4($t1)      # Store 0 at index (n-1)
+    sb $t8, 8($t1)      # Store 0 at index n
     jr $ra
 
 
