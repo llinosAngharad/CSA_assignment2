@@ -94,15 +94,8 @@ MAKE_HEAP_EXIT:
 # @return $v0: fibonacci number
 ##
 fib:
-    addi $sp, $sp, -12
-    sw $ra, 8($sp)
-    sw $a0, 4($sp)      # Parameter $a0
-    sw $a1, 0($sp)      # Parameter $a1
-    
     move $t0, $a0       #  
     move $t1, $a1       # Address of memo[n]
-    
-    
     blez $t0, ZERO      # if N <= 0, fib(0)=0, jump to ZERO
     beq $t0, $t7, FIB1  # else if N == 1, fib(1)=1, jump to FIB1
     lb $t1, 0($t1)
@@ -110,7 +103,7 @@ fib:
     j REC
 
 ZERO:
-    li $v0, 0   # Return 0
+    li $v1, 0   # Return 0
     jr $ra
 
 FIB1:
@@ -131,19 +124,18 @@ REC:
 # calculate $a0 = N-1, then call Fib(N-1):	
 	addi $a0,$a0,-1
 	jal fib
-	
-# preserve state:
-    lw	$ra,4($sp)
-	lw $a0,0($sp)
+
+# preserve state
+	lw $ra, 4($sp)
+	lw $a0, 0($sp)
 	addi $sp,$sp,8
-	
+
 ## Enter Fib(N-2)
-# store state: $v0, value of Fib(N-1)
+# store state
     addi $sp,$sp,-12
-	sw $ra,8($sp)
-	sw $a0,4($sp)
-    sw $v0,0($sp)   # Store value of fib(n-1) on the stack
-    
+    sw $ra, 8($sp)
+    sw $a0, 4($sp)
+	sw $v0, 0($sp) # Store value of fib(n-1) on the stack
 # calculate $a0 = N-2, then call Fib(N-2):
 	addi $a0,$a0,-2
 	jal fib	
@@ -155,6 +147,6 @@ REC:
 	addi $sp,$sp,12
     
 ## operation: memo[n] = Fib(N-2)+Fib(N-1)
-    add $a1,$v0,$v1
-    move$v0, $a1
+    add $t5, $v0, $v1
+    move $v0,$t5
 	jr $ra
