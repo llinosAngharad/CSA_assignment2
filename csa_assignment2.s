@@ -8,6 +8,7 @@ error_msg:	.asciiz "\nInput error - must be a positive integer.\n"
     .text
 main:
     li $t9, 4
+    li $t8, 0
 
 INPUT:
 # Print message:
@@ -63,6 +64,17 @@ make_heap:
     mul $a0, $a1, $t9   # Calculate the amount of heap space needed (n+1)*4
     syscall
     move $s1, $v0       # Save base address of heap memo
+    move $t1, $v0       # Put base address of heap memo into temporary $t1
+    
+    # Initisalise memo with 0s
+    sb $t8, 0($t1)        # Store 0 at index (n-2)
+    add $t1, $t1, $t9   # Shift along to the next index (n-1)
+    
+    sb $t8, 0($t1)      # Store 0 at index (n-1)
+    add $t1, $t1, $t9   # Shift along to the next index n
+    
+    sb $t8, 0($t1)      # Store 0 at index n
+    
     jr $ra
 
 
