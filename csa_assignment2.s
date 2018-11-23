@@ -37,19 +37,33 @@ JFIB:
     jal make_heap       # Make array on the heap, returns base address of memo on heap
     
     move $a1, $v0       # Move base address of memo on heap into parameter $a1
+    move $s1, $v0
     lw $a0, 0($sp)      # Load input N from the heap into parameter $a0
     addi $sp, $sp, 4    # Restore stack pointer
     
     mul $t1, $a0, $t9   # N*4 = number of elements in memo
     add $a1, $a1, $t1   # Move address to end address of memo on heap
     jal fib             # Input is valid. Call fib subroutine
-    
+  
 PRINT_MSG:
     move $t0, $v0
     la $a0, final_msg   # Load address of final message into $a0 to be printed
     li $v0, 4           # System call code 4: print string
     syscall
+
+# print_fib_sequence:
+#     lb $a0, 0($s1)
+#     li $v0, 1       # Print integer
+#     syscall
     
+#     lb $a0, 4($s1)
+#     li $v0, 1       # Print integer
+#     syscall
+    
+#     lb $a0, 8($s1)
+#     li $v0, 1       # Print integer
+#     syscall 
+
 PRINT_FIB:
     move $a0, $t0   # Load integer returned from fib into $a0 to be printed
     li $v0, 1       # Print integer
