@@ -26,6 +26,9 @@ INPUT:
     j INPUT             # Ask for input again
 
 JFIB:
+    addi $a1, $a0, 1    # n+1
+    jal make_heap       # make array on the heap, returns end address of array on heap    
+    move $a1, $v0       # move end address of array on heap into parameter $a1
     jal fib     # Input is valid. Call fib subroutine
     
 PRINT:
@@ -37,6 +40,13 @@ EXIT:
     li $v0, 10      # System call code 10: exit
     syscall
 
+make_heap:
+    
+    jr $ra
+
 fib:
+    addi $sp, $sp, -8
+    sw $ra, 0($sp)
+    sw $a0, 4($sp)
     move $v0, $a0
     jr $ra
