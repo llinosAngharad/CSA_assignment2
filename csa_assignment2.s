@@ -117,36 +117,48 @@ MEMO:
 REC:
 # Fib(N-1):
 # store state:
-	addi $sp,$sp,-8
-	sw $ra,4($sp)
-	sw $a0,0($sp) 
+	addi $sp,$sp,-12
+	sw $ra,8($sp)
+	sw $a0,4($sp) 
+	sw $a1,0($sp)
 	
 # calculate $a0 = N-1, then call Fib(N-1):	
 	addi $a0,$a0,-1
 	jal fib
 
 # preserve state
-	lw $ra, 4($sp)
-	lw $a0, 0($sp)
-	addi $sp,$sp,8
+	lw $ra,8($sp)
+	lw $a0,4($sp)
+	lw $a1,0($sp)
+	addi $sp,$sp,12
 
 ## Enter Fib(N-2)
 # store state
-    addi $sp,$sp,-12
-    sw $ra, 8($sp)
-    sw $a0, 4($sp)
+    addi $sp,$sp,-16
+    sw $ra, 12($sp)
+    sw $a0, 8($sp)
+    sw $a1, 4($sp)
 	sw $v0, 0($sp) # Store value of fib(n-1) on the stack
+	
 # calculate $a0 = N-2, then call Fib(N-2):
 	addi $a0,$a0,-2
 	jal fib	
 	
 # preserve state: Fib(N-1)
-    lw $ra,8($sp) 
-	lw $a0,4($sp)
+    lw $ra,12($sp) 
+	lw $a0,8($sp)
+	lw $a1,4($sp)
     lw $v1,0($sp)
-	addi $sp,$sp,12
+    addi $sp,$sp,16
+	
     
 ## operation: memo[n] = Fib(N-2)+Fib(N-1)
     add $t5, $v0, $v1
+    
+    addi $sp, $sp, -4
+    sb $t5, 0($sp)  # Store memo[n] = ... into address of memo[n] i.e $a1
+    lw $a1, 0($sp)
+    addi $sp, $sp, 4
+    
     move $v0,$t5
 	jr $ra
