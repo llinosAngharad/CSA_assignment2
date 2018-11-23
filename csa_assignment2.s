@@ -7,6 +7,7 @@ error_msg:	.asciiz "\nInput error - must be a positive integer.\n"
 	
     .text
 main:
+    li $t9, 4
 
 INPUT:
 # Print message:
@@ -27,9 +28,13 @@ INPUT:
 
 JFIB:
     addi $a1, $a0, 1    # n+1
+    addi $sp, $sp, -8
+    sw $a0, 0($sp)
+    sw $a1, 4($sp)
     jal make_heap       # make array on the heap, returns end address of array on heap    
+    lw $a0, 0($sp)
     move $a1, $v0       # move end address of array on heap into parameter $a1
-    jal fib     # Input is valid. Call fib subroutine
+    jal fib             # Input is valid. Call fib subroutine
     
 PRINT:
     move $a0, $v0
@@ -41,7 +46,11 @@ EXIT:
     syscall
 
 make_heap:
-    
+    # Allocate heap space for array:
+    li $v0, 9           # System call code 9: allocate heap space
+    mul $a0, $a1, $t9   # Calculate the amount of heap space needed (n+1)*4
+    syscall
+    move $s1, $v0       # Save base address of heap
     jr $ra
 
 fib:
