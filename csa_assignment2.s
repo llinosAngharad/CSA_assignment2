@@ -28,12 +28,16 @@ INPUT:
 
 JFIB:
     addi $a1, $a0, 1    # n+1
-    addi $sp, $sp, -8
-    sw $a0, 0($sp)
-    sw $a1, 4($sp)
-    jal make_heap       # make array on the heap, returns end address of array on heap    
-    lw $a0, 0($sp)
-    move $a1, $v0       # move end address of array on heap into parameter $a1
+    
+    addi $sp, $sp, -4   # Adjust stack pointer
+    sw $a0, 0($sp)      # Store input N on the stack
+    
+    jal make_heap       # make array on the heap, returns end address of array on heap
+    
+    lw $a0, 0($sp)      # Load input N from the heap into parameter $a0
+    move $a1, $v0       # Move base address of array on heap into parameter $a1
+    mul $t1, $a0, $t9   # n*4
+    addi $a1, $a1, $t1  # Add
     jal fib             # Input is valid. Call fib subroutine
     
 PRINT:
