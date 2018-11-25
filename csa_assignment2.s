@@ -67,19 +67,10 @@ EXIT:
 # @return $v0: base address of memo on heap
 ##
 make_heap:
-    addi $sp, $sp, -4
-    sw $a0, 0($sp)      # Store user input N on the heap
-
     # Allocate heap space for memo:
     li $v0, 9           # System call code 9: allocate heap space
     sll $a0, $a1, 2     # Calculate the amount of heap space needed (n+1)*4
     syscall
-
-    move $s1, $v0       # Save base address of heap memo
-    move $t1, $v0       # Put base address of heap memo into temporary $t1
-
-    lw $a0, 0($sp)      # Load input N into temporary $t2
-    addi $sp, $sp, 4    # Restore stack pointer
 
 MAKE_HEAP_EXIT:
     jr $ra
@@ -89,27 +80,25 @@ MAKE_HEAP_EXIT:
 # Returns all fibonacci numbers from 0 to n
 #
 # @param $a0: user input N
-# @param $a1: end address of array on heap i.e address of memo[n]
+# @param $a1: start address of array on heap
 #
 # @return $v0: fibonacci number
 ##
 fib:
     move $t0, $a0		# Move input n into temporary $t0
 	move $t1, $a1       # Move base address of memo array into temporary $t1
-	move $t2, $a0       # Copy n in to $t2 to compute offset
+# 	move $t2, $a0       # Copy n in to $t2 to compute offset
 
     beq $a0, $0, ZERO   # if N == 0, fib(0)=0, jump to ZERO
 
     beq $t0, $t7, FIB1  # else if N == 1, fib(1)=1, jump to FIB1
     
-    sll $t2, $t2, 2     # n*4
+    sll $t2, $a0, 2     # n*4
 	add $t1, $t1, $t2   # address of memo[n]
 	lw $t1, 0($t1)      # load memo[n]
     bgtz $t1, MEMO      # else if (memo[n] > 0) return memo[n]
 
     beqz $t1, REC        # if memo[n] is zero, compute value
-    move $v0, $t1        # return memo[n]
-    jr $ra
 
 ZERO:
     li $v0, 0   # Return 0
@@ -164,10 +153,10 @@ REC:
 ## operation: memo[n] = Fib(N-2)+Fib(N-1)
     add $t5, $v0, $v1
 
-    addi $sp, $sp, -4
-    sb $t5, 0($sp)  # Store memo[n] = ... into address of memo[n] i.e $a1
-    lw $a1, 0($sp)
-    addi $sp, $sp, 4
+    # addi $sp, $sp, -4
+    # sb $t5, 0($sp)  # Store memo[n] = ... into address of memo[n] i.e $a1
+    # lw $a1, 0($sp)
+    # addi $sp, $sp, 4
 
     move $v0,$t5
 	jr $ra
