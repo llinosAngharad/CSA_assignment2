@@ -30,6 +30,7 @@ INPUT:
     j INPUT             # Ask for input again
 
 JFIB:
+    move $s5, $a0
     addi $sp, $sp, -4   # Adjust stack pointer
     sw $a0, 0($sp)      # Store input N on the stack
     addi $a1, $a0, 1    # n+1
@@ -53,6 +54,21 @@ PRINT_FIB:
     move $a0, $t0   # Load integer returned from fib into $a0 to be printed
     li $v0, 1       # Print integer
     syscall
+    
+    add $t3, $zero, $s5     # N
+    lw $a0, ($a1)         # base address of heap
+
+PRINT_HEAP:
+    # n -> -1
+    bltz $t3, EXIT
+    
+    li $v0, 1
+    syscall
+    
+    addi $t3, $t3, -1
+    addi $a1,$a1, 4
+    lw $a0, ($a1)
+    j PRINT_HEAP
 
 EXIT:
     li $v0, 10      # System call code 10: exit
