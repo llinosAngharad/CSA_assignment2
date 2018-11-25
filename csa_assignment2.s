@@ -113,8 +113,11 @@ fib:
 	add $t1, $t1, $t2   # address of memo[n]
 	lw $t1, 0($t1)      # load memo[n]
     bgtz $t1, MEMO      # else if (memo[n] > 0) return memo[n]
+    
+    beqz $t1, CALC        # if memo[n] is zero, compute value
 
-    beqz $t1, REC        # if memo[n] is zero, compute value
+    move $v0, $t1        # return memo[n]
+    jr $ra
 
 ZERO:
     li $v0, 0   # Return 0
@@ -127,6 +130,10 @@ FIB1:
 MEMO:
     move $v0, $t1  # Return memo[n]
     jr $ra
+    
+CALC:  jal REC          # call REC as a subroutine to calculate the value
+       sw $v0, 0($t1)   # store result of ‘REC’ in the memo array
+       jr $ra
 
 REC:
 # Fib(N-1):
@@ -168,11 +175,5 @@ REC:
 
 ## operation: memo[n] = Fib(N-2)+Fib(N-1)
     add $t5, $v0, $v1
-
-    # addi $sp, $sp, -4
-    # sb $t5, 0($sp)  # Store memo[n] = ... into address of memo[n] i.e $a1
-    # lw $a1, 0($sp)
-    # addi $sp, $sp, 4
-
     move $v0,$t5
 	jr $ra
