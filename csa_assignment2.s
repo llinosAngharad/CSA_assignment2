@@ -30,15 +30,16 @@ INPUT:
     j INPUT             # Ask for input again
 
 JFIB:
-    move $s5, $a0
     addi $sp, $sp, -4   # Adjust stack pointer
     sw $a0, 0($sp)      # Store input N on the stack
     addi $a1, $a0, 1    # n+1
 
-    jal make_heap       # Make array on the heap, returns base address of memo on heap
+    # Allocate heap space for memo:
+    li $v0, 9           # System call code 9: allocate heap space
+    sll $a0, $a1, 2     # Calculate the amount of heap space needed (n+1)*4
+    syscall
 
     move $a1, $v0       # Move base address of memo on heap into parameter $a1
-    move $s1, $v0
     lw $a0, 0($sp)      # Load input N from the heap into parameter $a0
     addi $sp, $sp, 4    # Restore stack pointer
 
@@ -54,43 +55,25 @@ PRINT_FIB:
     move $a0, $t0   # Load integer returned from fib into $a0 to be printed
     li $v0, 1       # Print integer
     syscall
-    
-    add $t3, $zero, $s5     # N
-    lw $a0, ($a1)         # base address of heap
 
-PRINT_HEAP:
-    # n -> -1
-    bltz $t3, EXIT
+#     add $t3, $zero, $s5     # N
+#     lw $a0, ($a1)           # base address of heap
     
-    li $v0, 1
-    syscall
+#  PRINT_HEAP:
+#     # n -> -1
+#     bltz $t3, EXIT
     
-    addi $t3, $t3, -1
-    addi $a1,$a1, 4
-    lw $a0, ($a1)
-    j PRINT_HEAP
+#     li $v0, 1
+#     syscall
+    
+#     addi $t3, $t3, -1
+#     addi $a1,$a1, 4
+#     lw $a0, ($a1)
+#     j PRINT_HEAP
 
 EXIT:
     li $v0, 10      # System call code 10: exit
     syscall
-
-##
-# Allocates space on the heap for the memo
-#
-# @param $a0: user input N
-# @param $a1: N+1 i.e the amount of memo entries needed
-#
-# @return $v0: base address of memo on heap
-##
-make_heap:
-    # Allocate heap space for memo:
-    li $v0, 9           # System call code 9: allocate heap space
-    sll $a0, $a1, 2     # Calculate the amount of heap space needed (n+1)*4
-    syscall
-
-MAKE_HEAP_EXIT:
-    jr $ra
-
 
 ##
 # Returns all fibonacci numbers from 0 to n
@@ -101,39 +84,55 @@ MAKE_HEAP_EXIT:
 # @return $v0: fibonacci number
 ##
 fib:
-    move $t0, $a0		# Move input n into temporary $t0
-	move $t1, $a1       # Move base address of memo array into temporary $t1
-# 	move $t2, $a0       # Copy n in to $t2 to compute offset
+    addi $sp, $sp, -4
+    sw $ra, 0($sp)
 
     beq $a0, $0, ZERO   # if N == 0, fib(0)=0, jump to ZERO
-
-    beq $t0, $t7, FIB1  # else if N == 1, fib(1)=1, jump to FIB1
+    beq $a0, $t7, FIB1  # else if N == 1, fib(1)=1, jump to FIB1
     
+    move $t1, $a1       # Move base address of memo array into temporary $t1
+    sll $t2, $a0, 2     # n*4
+	add $t1, $t1, $t2   # address of memo[n] = base address + offset
+	
+	lw $t3, 0($t1)      # load data at memo[n] address into $t3
+    bgtz $t3, FIB_MEMO  # if (memo[n] > 0) return memo[n]
+
+CALC:
+    addi $sp, $sp, -4
+    sw $ra, 0($sp)
+
+    jal REC
+    
+    lw $ra, 0($sp)
+    addi $sp, $sp, 4
+    
+    move $t1, $a1       # Move base address of memo array into temporary $t1
     sll $t2, $a0, 2     # n*4
 	add $t1, $t1, $t2   # address of memo[n]
-	lw $t1, 0($t1)      # load memo[n]
-    bgtz $t1, MEMO      # else if (memo[n] > 0) return memo[n]
     
-    beqz $t1, CALC        # if memo[n] is zero, compute value
-
-    move $v0, $t1        # return memo[n]
+    sw $v0, 0($t1)      # store result of REC in the memo array
     jr $ra
 
 ZERO:
+    lw $ra, 0($sp)
+    addi $sp, $sp, 4
+    
     li $v0, 0   # Return 0
     jr $ra
 
 FIB1:
+    lw $ra, 0($sp)
+    addi $sp, $sp, 4
+
     li $v0, 1   # Return 1
     jr $ra
 
-MEMO:
-    move $v0, $t1  # Return memo[n]
+FIB_MEMO:
+    lw $ra, 0($sp)
+    addi $sp, $sp, 4
+
+    move $v0, $t3  # Return data memo[n]
     jr $ra
-    
-CALC:  jal REC          # call REC as a subroutine to calculate the value
-       sw $v0, 0($t1)   # store result of ‘REC’ in the memo array
-       jr $ra
 
 REC:
 # Fib(N-1):
