@@ -45,6 +45,10 @@ SET_UP:
     syscall
 
     move $a2, $v0       # Move base address of memo on heap into parameter $a1
+    
+    la $a0, final_msg    # Load address of message into $a0
+	li $v0, 4           # System call code 4: print string
+    syscall
 
 SEQ_LOOP:
     move $a3, $a1       # i
