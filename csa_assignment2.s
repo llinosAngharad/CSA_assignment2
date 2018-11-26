@@ -9,8 +9,7 @@ error_msg:	.asciiz "\nInput error - must be a positive integer.\n"
     .text
 main:
     li $t9, 4
-    li $t8, 0
-    li $t7, 1
+    li $t8, 1
 
 INPUT:
 # Print message:
@@ -39,9 +38,11 @@ JFIB:
     sll $a0, $a1, 2     # Calculate the amount of heap space needed (n+1)*4
     syscall
 
-    move $a1, $v0       # Move base address of memo on heap into parameter $a1
-    lw $a0, 0($sp)      # Load input N from the heap into parameter $a0
+    lw $a1, 0($sp)      # Load input n from the heap into parameter $a0
     addi $sp, $sp, 4    # Restore stack pointer
+    
+    move $a2, $v0       # Move base address of memo on heap into parameter $a1
+    move $a3, $a1       # copy of n
 
     jal fib             # Input is valid. Call fib subroutine
 
@@ -78,8 +79,9 @@ EXIT:
 ##
 # Returns all fibonacci numbers from 0 to n
 #
-# @param $a0: user input N
-# @param $a1: start address of array on heap
+# @param $a1: user input n
+# @param $a2: start address of array on heap
+# @param $a3: copy of n
 #
 # @return $v0: fibonacci number
 ##
@@ -87,31 +89,40 @@ fib:
     addi $sp, $sp, -4
     sw $ra, 0($sp)
 
-    beq $a0, $0, ZERO   # if N == 0, fib(0)=0, jump to ZERO
-    beq $a0, $t7, FIB1  # else if N == 1, fib(1)=1, jump to FIB1
+    blez $a1, ZERO      # if N <= 0, fib(0)=0, jump to ZERO
+    beq $a1, $t8, FIB1  # else if N == 1, fib(1)=1, jump to FIB1
     
-    move $t1, $a1       # Move base address of memo array into temporary $t1
-    sll $t2, $a0, 2     # n*4
-	add $t1, $t1, $t2   # address of memo[n] = base address + offset
+    sll $t1, $a1, 2     # n*4
+	add $a2, $a2, $t1   # address of memo[n] = base address + offset
 	
-	lw $t3, 0($t1)      # load data at memo[n] address into $t3
-    bgtz $t3, FIB_MEMO  # if (memo[n] > 0) return memo[n]
+	lw $a0, 0($a2)      # load data at memo[n] address into $t3
+	sub $a2, $a2, $t1
+	
+    bgtz $a0, FIB_MEMO  # if (memo[n] > 0) return memo[n]
 
 CALC:
-    addi $sp, $sp, -4
-    sw $ra, 0($sp)
+# Fib(N-1):
+# calculate $a0 = N-1, then call Fib(N-1):
+	addi $a1,$a1,-1
+	jal fib
+	move $t2, $v0       # Store result of fib(n-1)
 
-    jal REC
+## Enter Fib(N-2)
+# calculate $a0 = N-2, then call Fib(N-2):
+    addi $a1, $a1, -1   # PROBLEM HERE
+	jal fib
+	move $t3, $v0       # Store result of fib(n-2)
+
+## operation: memo[n] = Fib(N-2)+Fib(N-1)
+    add $t2, $t2, $t3   # fib(n-1) + fib(n-2)
     
-    lw $ra, 0($sp)
-    addi $sp, $sp, 4
+    sll $t1, $a3, 2     # n*4
+    add $a2, $a2, $t1   # address of memo[n]
+    sw $t2, 0($a2)      # store resul in the memo array
+    sub $a2, $a2, $t1   # Shift pointer back to starting position
     
-    move $t1, $a1       # Move base address of memo array into temporary $t1
-    sll $t2, $a0, 2     # n*4
-	add $t1, $t1, $t2   # address of memo[n]
-    
-    sw $v0, 0($t1)      # store result of REC in the memo array
-    jr $ra
+    move $a0, $t2
+    j FIB_MEMO
 
 ZERO:
     lw $ra, 0($sp)
@@ -131,48 +142,5 @@ FIB_MEMO:
     lw $ra, 0($sp)
     addi $sp, $sp, 4
 
-    move $v0, $t3  # Return data memo[n]
+    move $v0, $a0  # Return data memo[n]
     jr $ra
-
-REC:
-# Fib(N-1):
-# store state:
-	addi $sp,$sp,-12
-	sw $ra,8($sp)
-	sw $a0,4($sp)
-	sw $a1,0($sp)
-
-# calculate $a0 = N-1, then call Fib(N-1):
-	addi $a0,$a0,-1
-	jal fib
-
-# preserve state
-	lw $ra,8($sp)
-	lw $a0,4($sp)
-	lw $a1,0($sp)
-	addi $sp,$sp,12
-
-## Enter Fib(N-2)
-# store state
-    addi $sp,$sp,-16
-    sw $ra, 12($sp)
-    sw $a0, 8($sp)
-    sw $a1, 4($sp)
-	sw $v0, 0($sp) # Store value of fib(n-1) on the stack
-
-# calculate $a0 = N-2, then call Fib(N-2):
-	addi $a0,$a0,-2
-	jal fib
-
-# preserve state: Fib(N-1)
-    lw $ra,12($sp)
-	lw $a0,8($sp)
-	lw $a1,4($sp)
-    lw $v1,0($sp)
-    addi $sp,$sp,16
-
-
-## operation: memo[n] = Fib(N-2)+Fib(N-1)
-    add $t5, $v0, $v1
-    move $v0,$t5
-	jr $ra
