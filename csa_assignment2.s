@@ -2,9 +2,12 @@
 	.align 2
 
 init_msg:   .asciiz "\nProvide an integer for the Fibonacci computation:\n"
-final_msg:  .asciiz "\nThe Fibonacci numbers are:\n"
+final_msg:  .asciiz "\nThe Fibonacci sequence is:\n"
 comma:      .asciiz ","
 error_msg:	.asciiz "\nInput error - must be a positive integer.\n"
+new_line:   .asciiz "\n"
+colon:      .asciiz ": "
+
 
     .text
 main:
@@ -13,66 +16,72 @@ main:
 
 INPUT:
 # Print message:
-    la $a0, init_msg     # Load address of message into $a0
-	li $v0, 4       # System call code 4: print string
+    la $a0, init_msg    # Load address of message into $a0
+	li $v0, 4           # System call code 4: print string
     syscall
+    
 # Read input N:
     li $v0,5        # System call code 5: read integer
     syscall
+    
 # Validate input
     move $a0, $v0   # Move input N into argument $a0
-    bgez $a0, JFIB  # If input N > 0, then proceed to fibonacci
+    bgez $a0, SET_UP  # If input N > 0, then proceed to fibonacci
+
 # If input is invalid
     la $a0, error_msg   # Load address of error message into $a0 to be printed
     li $v0, 4           # System call code 4: print string
     syscall
+    
     j INPUT             # Ask for input again
 
-JFIB:
-    addi $sp, $sp, -4   # Adjust stack pointer
-    sw $a0, 0($sp)      # Store input N on the stack
-    addi $a1, $a0, 1    # n+1
+SET_UP:
+    li $a1, 0           # a1 = i
+    addi $t0, $a0, 1    # n+1
 
     # Allocate heap space for memo:
+    sll $a0, $t0, 2     # Calculate the amount of heap space needed (n+1)*4
     li $v0, 9           # System call code 9: allocate heap space
-    sll $a0, $a1, 2     # Calculate the amount of heap space needed (n+1)*4
     syscall
 
-    lw $a1, 0($sp)      # Load input n from the heap into parameter $a0
-    addi $sp, $sp, 4    # Restore stack pointer
-    
     move $a2, $v0       # Move base address of memo on heap into parameter $a1
-    move $a3, $a1       # copy of n
 
+SEQ_LOOP:
+    move $a3, $a1       # i
+    beq $a1, $t0, exit  # when counter reaches n, exit
+    
+    # store state
+    addi $sp, $sp, -4   # adjust stack
+    sw $a1, 0($sp)      # store n on the stack
+    
+    move $a0, $a1       # print i
+    li $v0, 1           # System call 1: print integer
+    syscall
+    
+    la $a0, colon       # print :
+    li $v0, 4           # System call 4: print string
+    syscall
+    
+    # call fib subroutine
     jal fib             # Input is valid. Call fib subroutine
-
-PRINT_MSG:
-    move $t0, $v0
-    la $a0, final_msg   # Load address of final message into $a0 to be printed
-    li $v0, 4           # System call code 4: print string
+    # print return
+    move $a0, $v0
+    li $v0, 1           # System call 1: print integer
     syscall
-
-PRINT_FIB:
-    move $a0, $t0   # Load integer returned from fib into $a0 to be printed
-    li $v0, 1       # Print integer
+    
+    la $a0, new_line
+    li $v0, 4
     syscall
+    
+    # preserve state
+    lw $a1, 0($sp)
+    addi $sp, $sp, 4
+    
+    addi $a1, $a1, 1    # i++
+    
+    j SEQ_LOOP
 
-#     add $t3, $zero, $s5     # N
-#     lw $a0, ($a1)           # base address of heap
-    
-#  PRINT_HEAP:
-#     # n -> -1
-#     bltz $t3, EXIT
-    
-#     li $v0, 1
-#     syscall
-    
-#     addi $t3, $t3, -1
-#     addi $a1,$a1, 4
-#     lw $a0, ($a1)
-#     j PRINT_HEAP
-
-EXIT:
+exit:
     li $v0, 10      # System call code 10: exit
     syscall
 
@@ -94,7 +103,6 @@ fib:
     
     sll $t1, $a1, 2     # n*4
 	add $a2, $a2, $t1   # address of memo[n] = base address + offset
-	
 	lw $a0, 0($a2)      # load data at memo[n] address into $t3
 	sub $a2, $a2, $t1
 	
